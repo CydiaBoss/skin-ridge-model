@@ -53,15 +53,30 @@ def generate_spiral_fingerprint(shape=(256, 256), ridge_freq=15.0, noise_scale=4
     return spiral_pattern
 
 # Generate and display
-fingerprint_pattern = generate_fingerprint_ridge_pattern()
-plt.imshow(fingerprint_pattern, cmap='gray')
-plt.title("Fingerprint-like Perlin Noise Pattern")
-plt.axis('off')
-plt.show()
+fingerprint_pattern = generate_fingerprint_ridge_pattern(ridge_freq=25)
+# plt.imshow(fingerprint_pattern, cmap='gray')
+# plt.title("Fingerprint-like Perlin Noise Pattern")
+# plt.axis('off')
+# plt.show()
 
 # Generate and display
 spiral_fp = generate_spiral_fingerprint(ridge_freq=100)
-plt.imshow(spiral_fp, cmap='gray')
-plt.title("Spiral Fingerprint-Like Pattern")
-plt.axis('off')
+# plt.imshow(spiral_fp, cmap='gray')
+# plt.title("Spiral Fingerprint-Like Pattern")
+# plt.axis('off')
+# plt.show()
+
+# set up the figure and Axes
+x = np.arange(0, 256)
+y = np.arange(0, 256)
+fig = plt.figure(figsize=(8, 3))
+ax1 = fig.add_subplot(121, projection='3d')
+ax2 = fig.add_subplot(122, projection='3d')
+
+ax1.contour3D(x, y, fingerprint_pattern, 50, shade=True)
+ax1.set_title('Shaded')
+
+ax2.contour3D(x, y, spiral_fp, 50, shade=False)
+ax2.set_title('Not Shaded')
+
 plt.show()
