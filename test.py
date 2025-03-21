@@ -73,10 +73,10 @@ fig = plt.figure(figsize=(8, 3))
 ax1 = fig.add_subplot(121, projection='3d')
 ax2 = fig.add_subplot(122, projection='3d')
 
-ax1.contour3D(x, y, fingerprint_pattern, 50, shade=True)
-ax1.set_title('Shaded')
+ax1.contour3D(x, y, fingerprint_pattern, 50)
+ax1.set_title('Waves')
 
-ax2.contour3D(x, y, spiral_fp, 50, shade=False)
-ax2.set_title('Not Shaded')
+ax2.contour3D(x, y, spiral_fp, 50)
+ax2.set_title('Spiral')
 
 plt.show()
