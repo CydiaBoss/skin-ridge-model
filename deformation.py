@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 from matplotlib import cm
+from matplotlib.animation import FuncAnimation
 from noise import pnoise2
 
 # Parameters
@@ -71,58 +72,54 @@ def generate_spiral(shape=(256, 256), ridge_freq=25.0, noise_scale=40.0, noise_s
 surface = generate_spiral(shape=(nx, ny))
 
 def create_pressure_map(shape, pattern_type='circular', center=None, radius=None, intensity=1.0):
-	"""
-	Create different pressure patterns.
+    """
+    Create different pressure patterns.
 
-	Parameters:
+    Parameters:
 
-	shape: Shape of the heightmap (height, width)
-	pattern_type: 'circular', 'linear', or 'point'
-	center: Center point of pressure (x, y)
-	radius: Radius for circular pattern or width for linear
-	intensity: Maximum pressure intensity (0-1)
+    shape: Shape of the heightmap (height, width)
+    pattern_type: 'circular', 'linear', or 'point'
+    center: Center point of pressure (x, y)
+    radius: Radius for circular pattern or width for linear
+    intensity: Maximum pressure intensity (0-1)
 
-	Returns:
-	pressure_map: A 2D array representing pressure distribution
-	"""
-	height, width = shape
-	pressure_map = np.zeros(shape)
+    Returns:
+    pressure_map: A 2D array representing pressure distribution
+    """
+    height, width = shape
+    pressure_map = np.zeros(shape)
 
-	if center is None:
-		center = (width // 2, height // 2)
+    if center is None:
+        center = (width // 2, height // 2)
 
-	if radius is None:
-		radius = min(width, height) // 4
+    if radius is None:
+        radius = min(width, height) // 4
 
-	if pattern_type == 'circular':
-		for y in range(height):
-			for x in range(width):
-				dist = np.sqrt(np.abs((x - center[0])*2 + (y - center[1])*2))
-				if dist < radius:
-					# Pressure decreases from center
-					pressure_map[y, x] = intensity * (1 - dist/radius)
+    if pattern_type == 'circular':
+        for y in range(height):
+            for x in range(width):
+                dist = np.sqrt((x - center[0])**2 + (y - center[1])**2)
+                if dist < radius:
+                    # Pressure decreases from center
+                    pressure_map[y, x] = intensity * (1 - dist/radius)
 
-	elif pattern_type == 'point':
-		# Single point pressure
-		x, y = center
-		pressure_map[y, x] = intensity
-		pressure_map = gaussian_filter(pressure_map, sigma=radius/4)
+    elif pattern_type == 'point':
+        # Single point pressure
+        x, y = center
+        pressure_map[y, x] = intensity
+        pressure_map = gaussian_filter(pressure_map, sigma=radius/4)
 
-	elif pattern_type == 'linear':
-		# Linear pressure across width
-		for y in range(height):
-			for x in range(width):
-				if abs(y - center[1]) < radius:
-					pressure_map[y, x] = intensity * (1 - abs(y - center[1])/radius)
+    elif pattern_type == 'linear':
+        # Linear pressure across width
+        for y in range(height):
+            for x in range(width):
+                if abs(y - center[1]) < radius:
+                    pressure_map[y, x] = intensity * (1 - abs(y - center[1])/radius)
 
-	return pressure_map
+    return pressure_map
 
-# Applied stress (Gaussian pressure at the center)
-# sigma = np.zeros((nx, ny))
-# sigma[nx//2, ny//2] = 50.0  # Point stress at the center
-# sigma = gaussian_filter(sigma, sigma=5)  # Smooth the stress distribution
-
-sigma = create_pressure_map((nx, ny), pattern_type="point")
+# Applied stress 
+sigma = create_pressure_map((nx, ny), pattern_type="linear")
 
 # Initialize strain and its derivative
 deformation = np.zeros((nx, ny, len(time)))
@@ -179,12 +176,69 @@ def plot_3d_surface(X, Y, Z, title):
 # Plot initial surface profile
 plot_3d_surface(X, Y, surface, 'Initial Spiral Ridge Surface')
 
+# Final time step
+t_idx = -1  
+
 # Plot deformed surface
-plot_3d_surface(X, Y, deformation[:, :, -1], 'Deformed Spiral Ridge Surface')
+plot_3d_surface(X, Y, deformation[:, :, t_idx], 'Deformed Spiral Ridge Surface')
 
 # Plot receptor responses at a specific time step
-t_idx = -1  # Final time step
-plot_3d_surface(X, Y, sa1[:, :, t_idx], 'SA1 Response at t=10')
-plot_3d_surface(X, Y, sa2[:, :, t_idx], 'SA2 Response at t=10')
-plot_3d_surface(X, Y, fa1[:, :, t_idx], 'FA1 Response at t=10')
-plot_3d_surface(X, Y, fa2[:, :, t_idx], 'FA2 Response at t=10')
+# plot_3d_surface(X, Y, sa1[:, :, t_idx], 'SA1 Response at t=10')
+# plot_3d_surface(X, Y, sa2[:, :, t_idx], 'SA2 Response at t=10')
+# plot_3d_surface(X, Y, fa1[:, :, t_idx], 'FA1 Response at t=10')
+# plot_3d_surface(X, Y, fa2[:, :, t_idx], 'FA2 Response at t=10')
+
+# Plot Deformation thru time
+# Set up the figure and axis for animation
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+# Initialize the surface plot
+def init():
+    ax.clear()
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Response')
+    ax.set_zlim(-1, 1)
+    ax.set_title('Receptor Response Animation')
+    return fig,
+
+# Update function for animation
+def update(frame):
+    ax.clear()
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Response')
+    ax.set_zlim(-1, 1)
+    ax.set_title(f'Receptor Response at t={time[frame]:.2f}')
+    
+    # Plot the receptor response at the current frame
+    response = fa2[:, :, frame]  # Change to sa2, fa1, or fa2 for other receptors
+    ax.plot_surface(X, Y, response, cmap=cm.viridis, linewidth=0, antialiased=False)
+    return fig,
+
+# Create the animation
+ani = FuncAnimation(fig, update, frames=len(time), init_func=init, blit=False, interval=5)
+
+# Save the animation as a video file
+# ani.save('fa2_response_animation.mp4', writer='ffmpeg', fps=30)
+
+# Display the animation interactively
+plt.show()
+
+# Total Deformation
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111)
+
+# Calculate Max Deformation
+def_avg = [epsilon[:, :, i].mean() for i in range(len(time))]
+def_max = [epsilon[:, :, i].max() for i in range(len(time))]
+
+ax.plot(time, def_avg, label="Avg Displacement")
+ax.plot(time, def_max, label="Max Displacement")
+
+plt.title("Displacement vs. Time")
+plt.xlabel("Time")
+plt.ylabel("Displacement")
+plt.legend()
+plt.show()
