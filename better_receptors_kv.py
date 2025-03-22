@@ -56,8 +56,17 @@ def generate_spiral(shape=(256, 256), ridge_freq=25.0, noise_scale=40.0, noise_s
     spiral_pattern = (spiral_pattern - spiral_pattern.min()) / (spiral_pattern.max() - spiral_pattern.min())
     return spiral_pattern
 
-# Example: 2D fingerprint ridge height map
-ridge_profile = generate_spiral()  # Replace with real data
+# Parameters
+shape = (256, 256)
+ridge_profile = np.random.rand(*shape)
+E = 10.0  # Elastic modulus
+eta = 5.0  # Viscosity
+dt = 0.01  # Time step
+timesteps = 100
+
+# Initial state
+strain = np.zeros_like(ridge_profile)
+strain_history = []
 
 # Simulate a pressure distribution (Gaussian blob as contact)
 def apply_pressure(ridge_profile, center, sigma=5.0, peak_pressure=1.0):
@@ -67,36 +76,52 @@ def apply_pressure(ridge_profile, center, sigma=5.0, peak_pressure=1.0):
     pressure_map = peak_pressure * np.exp(-distance_squared / (2 * sigma**2))
     return pressure_map
 
-pressure = apply_pressure(ridge_profile, center=(127, 127), sigma=50)
+# Define pressure input over time (could be a dynamic contact)
+def pressure_sequence(t, center=(127, 127), sigma=50, peak=1.0):
+    # Example: oscillating Gaussian contact
+    pressure = apply_pressure(ridge_profile, center, sigma, peak * np.sin(2 * np.pi * t * 0.1))
+    return pressure
 
-# Strain or deformation response (simplified)
-# Assume deformation is inversely proportional to ridge height
-strain = pressure / (ridge_profile + 1e-3)
+# Example: 2D fingerprint ridge height map
+ridge_profile = generate_wave(shape=shape)  # Replace with real data
 
-# SA1: Local spatial detail (laplacian of strain)
-sa1_response = laplace(strain)
+# Time-stepping simulation using Kelvin–Voigt model
+for t in range(timesteps):
+    pressure = pressure_sequence(t)
+    dstrain_dt = (pressure - E * strain) / eta
+    strain += dt * dstrain_dt
+    strain_history.append(strain.copy())
 
-# SA2: Broad low-frequency deformation field
-sa2_response = gaussian_filter(strain, sigma=10)
+# Convert to array: shape = (time, x, y)
+strain_history = np.stack(strain_history)
 
-# FA1: Transient response - temporal derivative (simplified)
-# Simulate a time-varying sequence of pressures
-strain_t1 = strain
-strain_t2 = strain_t1 * 0.8  # Pressure reduced in next timestep
-fa1_response = strain_t2 - strain_t1  # Temporal gradient
+# Example: compute receptor responses at final time step
+sa1_response = laplace(strain_history[-1])  # Spatial detail
+sa2_response = gaussian_filter(strain_history[-1], sigma=10)  # Broad spatial stretch
 
-# FA2: High-frequency vibration – second derivative (acceleration)
-strain_t3 = strain_t2 * 1.2  # Sudden increase
-acceleration = strain_t3 - 2 * strain_t2 + strain_t1
-fa2_response = gaussian_filter(acceleration, sigma=1)
+# FA1: First derivative over time
+fa1_response = strain_history[1:] - strain_history[:-1]
 
-plt.figure(figsize=(10, 8))
-for i, (title, data) in enumerate(zip(
-    ['SA1', 'SA2', 'FA1', 'FA2'],
-    [sa1_response, sa2_response, fa1_response, fa2_response])):
-    plt.subplot(2, 2, i + 1)
-    plt.title(title)
-    plt.imshow(data, cmap='viridis')
-    plt.colorbar()
-plt.tight_layout()
-plt.show()
+# FA2: Second derivative over time (vibration sensitivity)
+fa2_response = strain_history[2:] - 2 * strain_history[1:-1] + strain_history[:-2]
+
+for t in range(timesteps - 2):
+    plt.clf()
+    plt.suptitle(f'Time step {t}')
+    plt.subplot(2, 2, 1)
+    plt.title('SA1')
+    plt.imshow(laplace(strain_history[t]), cmap='plasma')
+
+    plt.subplot(2, 2, 2)
+    plt.title('SA2')
+    plt.imshow(gaussian_filter(strain_history[t], sigma=10), cmap='plasma')
+
+    plt.subplot(2, 2, 3)
+    plt.title('FA1')
+    plt.imshow(fa1_response[t], cmap='viridis')
+
+    plt.subplot(2, 2, 4)
+    plt.title('FA2')
+    plt.imshow(fa2_response[t], cmap='viridis')
+
+    plt.pause(0.05)
