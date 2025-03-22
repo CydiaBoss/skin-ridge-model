@@ -58,11 +58,13 @@ def generate_spiral(shape=(256, 256), ridge_freq=25.0, noise_scale=40.0, noise_s
 
 # Parameters
 shape = (256, 256)
-ridge_profile = np.random.rand(*shape)
 E = 10.0  # Elastic modulus
 eta = 5.0  # Viscosity
 dt = 0.01  # Time step
 timesteps = 100
+
+# Example: 2D fingerprint ridge height map
+ridge_profile = generate_spiral(shape=shape)
 
 # Initial state
 strain = np.zeros_like(ridge_profile)
@@ -81,9 +83,6 @@ def pressure_sequence(t, center=(127, 127), sigma=50, peak=1.0):
     # Example: oscillating Gaussian contact
     pressure = apply_pressure(ridge_profile, center, sigma, peak * np.sin(2 * np.pi * t * 0.1))
     return pressure
-
-# Example: 2D fingerprint ridge height map
-ridge_profile = generate_wave(shape=shape)  # Replace with real data
 
 # Time-stepping simulation using Kelvin–Voigt model
 for t in range(timesteps):
