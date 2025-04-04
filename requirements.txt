@@ -20,6 +20,7 @@ nest-asyncio==1.6.0
 noise==1.2.2
 numpy==2.2.4
 packaging==24.2
+pandas==2.2.3
 parso==0.8.4
 pillow==11.1.0
 platformdirs==4.3.7
@@ -29,6 +30,7 @@ pure_eval==0.2.3
 Pygments==2.19.1
 pyparsing==3.2.1
 python-dateutil==2.9.0.post0
+pytz==2025.1
 pywin32==310
 pyzmq==26.3.0
 scipy==1.15.2
@@ -37,4 +39,5 @@ stack-data==0.6.3
 tornado==6.4.2
 traitlets==5.14.3
 typing_extensions==4.12.2
+tzdata==2025.1
 wcwidth==0.2.13
